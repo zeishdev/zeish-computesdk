@@ -14,14 +14,15 @@ The optional `externalIdentity` setting only supports legacy Arin-bound keys.
 
 ## Status
 
-This is an early provider release. `runCommand()` streams sandboxd stdout and
+This is an early provider release. Control-plane sandbox operations use Zeish
+Connect RPC; `runCommand()` streams sandboxd stdout and
 stderr callbacks through `ExecStream`; the deployed data plane must include
 the control plane's matching gRPC route before it can be used in production.
 
 ComputeSDK's provider interface has no sandbox-scoped snapshot-list/delete
 operation, while Zeish intentionally keeps those snapshot endpoints
 sandbox-scoped. Those two methods therefore remain unavailable through the
-provider; use Zeish REST for them.
+provider; use the first-party `createZeishSandboxClient()` for them.
 
 ## First-party sandbox client
 

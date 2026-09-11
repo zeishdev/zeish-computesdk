@@ -1,0 +1,9 @@
+syntax = "proto3";
+package zeish.cloud.control.v1;
+message FilesRequest { string sandbox_id = 1; string path = 2; string content = 3; }
+message FilesResponse { string json = 1; }
+service FilesService {
+  rpc ListDirectory(FilesRequest) returns (FilesResponse);
+  rpc ReadFile(FilesRequest) returns (FilesResponse);
+  rpc WriteFile(FilesRequest) returns (FilesResponse);
+}

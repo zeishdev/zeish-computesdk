@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message UsageRequest {
+  string organization_id = 1;
+  string sandbox_id = 2;
+  string from = 3;
+  string to = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+  string state = 7;
+}
+
+message UsageResponse {
+  string json = 1;
+}
+
+service UsageService {
+  rpc GetOrganizationUsage(UsageRequest) returns (UsageResponse);
+  rpc GetOrganizationSandboxUsage(UsageRequest) returns (UsageResponse);
+  rpc GetSandboxUsage(UsageRequest) returns (UsageResponse);
+}

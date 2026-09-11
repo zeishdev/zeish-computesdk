@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message GetOrganizationLimitsRequest {
+  string organization_id = 1;
+}
+
+message OrganizationLimits {
+  string organization_id = 1;
+  optional int32 max_sandboxes = 2;
+  optional int32 max_cpu_cores = 3;
+  optional int32 max_memory_mb = 4;
+  optional int32 max_requests_per_minute = 5;
+  optional int32 max_monthly_requests = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message GetOrganizationLimitsResponse {
+  OrganizationLimits limits = 1;
+}
+
+message UpdateOrganizationLimitsRequest {
+  string organization_id = 1;
+  optional int32 max_sandboxes = 2;
+  bool clear_max_sandboxes = 7;
+  optional int32 max_cpu_cores = 3;
+  bool clear_max_cpu_cores = 8;
+  optional int32 max_memory_mb = 4;
+  bool clear_max_memory_mb = 9;
+  optional int32 max_requests_per_minute = 5;
+  bool clear_max_requests_per_minute = 10;
+  optional int32 max_monthly_requests = 6;
+  bool clear_max_monthly_requests = 11;
+}
+
+message UpdateOrganizationLimitsResponse {
+  OrganizationLimits limits = 1;
+}
+
+service LimitsService {
+  rpc GetOrganizationLimits(GetOrganizationLimitsRequest)
+      returns (GetOrganizationLimitsResponse);
+  rpc UpdateOrganizationLimits(UpdateOrganizationLimitsRequest)
+      returns (UpdateOrganizationLimitsResponse);
+}

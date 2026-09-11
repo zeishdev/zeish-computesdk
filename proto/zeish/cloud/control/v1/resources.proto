@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+option go_package = "github.com/zeishdev/compute/proto/gen/zeish/cloud/control/v1;cloudv1";
+
+service ResourceService {
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
+  rpc CreateNetwork(CreateNetworkRequest) returns (CreateNetworkResponse);
+  rpc UpdateNetwork(UpdateNetworkRequest) returns (UpdateNetworkResponse);
+  rpc DeleteNetwork(DeleteNetworkRequest) returns (DeleteNetworkResponse);
+  rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse);
+  rpc GetVolume(GetVolumeRequest) returns (GetVolumeResponse);
+  rpc CreateVolume(CreateVolumeRequest) returns (CreateVolumeResponse);
+  rpc UpdateVolume(UpdateVolumeRequest) returns (UpdateVolumeResponse);
+  rpc DeleteVolume(DeleteVolumeRequest) returns (DeleteVolumeResponse);
+  rpc ListRegions(ListRegionsRequest) returns (ListRegionsResponse);
+}
+
+message Network {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  string slug = 4;
+  string region = 5;
+  string regiond_network_id = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message Volume {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  string slug = 4;
+  string region = 5;
+  int32 size_gb = 6;
+  string regiond_volume_id = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message NetworkInput {
+  string name = 1;
+  string slug = 2;
+  string region = 3;
+}
+
+message VolumeInput {
+  string name = 1;
+  string slug = 2;
+  string region = 3;
+  int32 size_gb = 4;
+}
+
+message ListNetworksRequest { string organization_id = 1; }
+message ListNetworksResponse { repeated Network networks = 1; }
+message GetNetworkRequest { string organization_id = 1; string id = 2; }
+message GetNetworkResponse { Network network = 1; }
+message CreateNetworkRequest { string organization_id = 1; NetworkInput input = 2; }
+message CreateNetworkResponse { Network network = 1; }
+message UpdateNetworkRequest {
+  string organization_id = 1;
+  string id = 2;
+  optional string name = 3;
+  optional string slug = 4;
+  optional string region = 5;
+}
+message UpdateNetworkResponse { Network network = 1; }
+message DeleteNetworkRequest { string organization_id = 1; string id = 2; }
+message DeleteNetworkResponse { Network network = 1; }
+message ListVolumesRequest { string organization_id = 1; }
+message ListVolumesResponse { repeated Volume volumes = 1; }
+message GetVolumeRequest { string organization_id = 1; string id = 2; }
+message GetVolumeResponse { Volume volume = 1; }
+message CreateVolumeRequest { string organization_id = 1; VolumeInput input = 2; }
+message CreateVolumeResponse { Volume volume = 1; }
+message UpdateVolumeRequest {
+  string organization_id = 1;
+  string id = 2;
+  optional string name = 3;
+  optional string slug = 4;
+  optional string region = 5;
+  optional int32 size_gb = 6;
+}
+message UpdateVolumeResponse { Volume volume = 1; }
+message DeleteVolumeRequest { string organization_id = 1; string id = 2; }
+message DeleteVolumeResponse { Volume volume = 1; }
+message ListRegionsRequest {}
+message Region { string id = 1; string name = 2; string location = 3; string created_at = 4; }
+message ListRegionsResponse { repeated Region regions = 1; }

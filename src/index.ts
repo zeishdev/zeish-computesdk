@@ -8,6 +8,7 @@ import type {
 } from '@computesdk/provider';
 import { runSandboxdCommand } from './sandboxd-grpc';
 import { createZeishApi, ZeishApiError } from './public-api';
+import { createConnectSandboxApi } from './connect-sandbox-api';
 import { createZeishSandboxClient } from './zeish-sandbox-client';
 import type {
   ZeishCreateSandboxOptions,
@@ -29,7 +30,7 @@ async function access(
     return sandbox.access;
   }
 
-  sandbox.access = await createZeishApi(sandbox.config).getExecAccess(sandbox.id);
+  sandbox.access = await createConnectSandboxApi(sandbox.config).getExecAccess(sandbox.id);
   return sandbox.access;
 }
 
@@ -57,7 +58,7 @@ function managedSandbox(
 }
 
 async function listAllSandboxes(config: ZeishConfig): Promise<ZeishManagedSandbox[]> {
-  const api = createZeishApi(config);
+  const api = createConnectSandboxApi(config);
   const sandboxes: ZeishManagedSandbox[] = [];
 
   for await (const sandbox of api.iterateSandboxes({ limit: 100 })) {
@@ -80,7 +81,7 @@ export const zeish = defineProvider<ZeishManagedSandbox, ZeishConfig>({
           if (options?.region && options.region !== ZEISH_REGION) {
             throw new Error(`Zeish supports only the ${ZEISH_REGION} region.`);
           }
-          const sandbox = await createZeishApi(config).createSandbox({
+          const sandbox = await createConnectSandboxApi(config).createSandbox({
           name: options?.name ?? 'Zeish sandbox',
           templateId,
           ...(options?.cpu !== undefined ? { cpu: options.cpu } : {}),
@@ -93,7 +94,7 @@ export const zeish = defineProvider<ZeishManagedSandbox, ZeishConfig>({
       },
       getById: async (config, sandboxId) => {
         try {
-          const sandbox = await createZeishApi(config).getSandbox(sandboxId);
+          const sandbox = await createConnectSandboxApi(config).getSandbox(sandboxId);
           return { sandbox: managedSandbox(config, sandbox), sandboxId };
         } catch (error) {
           if (!(error instanceof ZeishApiError) || error.status !== 404) throw error;
@@ -103,7 +104,7 @@ export const zeish = defineProvider<ZeishManagedSandbox, ZeishConfig>({
       list: async config =>
         (await listAllSandboxes(config)).map(sandbox => ({ sandbox, sandboxId: sandbox.id })),
       destroy: async (config, sandboxId) => {
-        await createZeishApi(config).destroySandbox(sandboxId);
+        await createConnectSandboxApi(config).destroySandbox(sandboxId);
       },
       runCommand: async (sandbox, command, options?: RunCommandOptions): Promise<CommandResult> =>
         runSandboxdCommand({
@@ -123,7 +124,7 @@ export const zeish = defineProvider<ZeishManagedSandbox, ZeishConfig>({
         createdAt: new Date(sandbox.createdAt),
       }) as SandboxInfo,
       getUrl: async (sandbox, options) =>
-        (await createZeishApi(sandbox.config).createPreviewCode(sandbox.id, { port: options.port }))
+        (await createConnectSandboxApi(sandbox.config).createPreviewCode(sandbox.id, { port: options.port }))
           .url,
       filesystem: {
         readFile: async (sandbox, path): Promise<string> =>
@@ -163,7 +164,7 @@ export const zeish = defineProvider<ZeishManagedSandbox, ZeishConfig>({
     },
     snapshot: {
       create: async (config, sandboxId, options) => {
-        const snapshot = await createZeishApi(config).createSnapshot(
+        const snapshot = await createConnectSandboxApi(config).createSnapshot(
           sandboxId,
           options?.name ?? 'snapshot',
         );
@@ -175,13 +176,16 @@ export const zeish = defineProvider<ZeishManagedSandbox, ZeishConfig>({
       },
       list: async () => [],
       delete: async () => {
-        throw new Error('Zeish snapshots are sandbox-scoped; delete them through the Zeish REST API.');
+        throw new Error('Zeish snapshots are sandbox-scoped; delete them through the sandbox Connect RPC.');
       },
     },
   },
 });
 
 export { createZeishApi, ZeishApiError } from './public-api';
+export { createConnectSandboxApi } from './connect-sandbox-api';
+export { createConnectResourceApi } from './connect-resource-api';
+export { createConnectSshApi } from './connect-ssh-api';
 export { FetchZeishTransport, createZeishTransport, withTransientRetry } from './transport';
 export { serializeSandboxAction } from './sandbox-actions';
 export { createZeishSandboxClient } from './zeish-sandbox-client';

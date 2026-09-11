@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message ListSshKeysRequest {}
+
+message CreateSshKeyRequest {
+  string name = 1;
+  string public_key = 2;
+  bool is_managed = 3;
+}
+
+message DeleteSshKeyRequest {
+  string id = 1;
+}
+
+message SshKeysResponse {
+  string json = 1;
+}
+
+service SshKeysService {
+  rpc ListSshKeys(ListSshKeysRequest) returns (SshKeysResponse);
+  rpc CreateSshKey(CreateSshKeyRequest) returns (SshKeysResponse);
+  rpc DeleteSshKey(DeleteSshKeyRequest) returns (SshKeysResponse);
+}

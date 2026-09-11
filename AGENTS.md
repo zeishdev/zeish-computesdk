@@ -1,9 +1,9 @@
 # Contributor and agent guide
 
 This repository is the Zeish ComputeSDK provider: a handwritten TypeScript
-facade over the generated public REST client and sandboxd's generated RPC
-bindings. `contracts/` is copied from the control-plane repository by a release
-workflow and must not be edited here.
+facade over the generated Connect control-plane client and sandboxd's generated
+RPC bindings. `contracts/` is copied from the control-plane repository by a
+release workflow and must not be edited here.
 
 ## Product naming
 
@@ -15,10 +15,11 @@ workflow and must not be edited here.
 
 ## Layering
 
-- `createZeishApi()` is the single low-level HTTP client for the control-plane
-  REST API. `createZeishSandboxClient()` and the ComputeSDK `zeish()` provider
-  are thin adapters over it plus the sandboxd data plane; they must not build
-  their own request paths.
+- `createZeishApi()` remains the compatibility client for non-sandbox methods
+  during the migration. `createConnectSandboxApi()` is the canonical client
+  for sandbox control operations, and `createZeishSandboxClient()` plus the
+  ComputeSDK `zeish()` provider are thin adapters over it and sandboxd's data
+  plane; they must not build their own control-plane request paths.
 - A rule the API enforces (TTL clamps, terminal statuses, ingress shape) is
   encoded once as a helper or constant and reused, not re-derived per call
   site.

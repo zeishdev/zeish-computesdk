@@ -1,0 +1,36 @@
+syntax = "proto3";
+package zeish.cloud.control.v1;
+
+message AdminRequest {
+  string id = 1;
+  string user_id = 2;
+  string organization_id = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  string search = 6;
+  int64 amount_cents = 7;
+  string reason = 8;
+  int32 min_ready = 9;
+  int32 max_ready = 10;
+}
+message AdminResponse { string json = 1; }
+service AdminService {
+  rpc ListUsers(AdminRequest) returns (AdminResponse);
+  rpc GetUserDetail(AdminRequest) returns (AdminResponse);
+  rpc ListUserSandboxes(AdminRequest) returns (AdminResponse);
+  rpc GetUserUsage(AdminRequest) returns (AdminResponse);
+  rpc ListSandboxes(AdminRequest) returns (AdminResponse);
+  rpc GetSandboxBilling(AdminRequest) returns (AdminResponse);
+  rpc GetSandboxEvents(AdminRequest) returns (AdminResponse);
+  rpc GetBillingOverview(AdminRequest) returns (AdminResponse);
+  rpc GetBillingPeriods(AdminRequest) returns (AdminResponse);
+  rpc SuspendUser(AdminRequest) returns (AdminResponse);
+  rpc ReinstateUser(AdminRequest) returns (AdminResponse);
+  rpc ListOrganizations(AdminRequest) returns (AdminResponse);
+  rpc GetOrganizationBilling(AdminRequest) returns (AdminResponse);
+  rpc GrantOrganizationCredit(AdminRequest) returns (AdminResponse);
+  rpc ListNodeMachines(AdminRequest) returns (AdminResponse);
+  rpc ListWarmPools(AdminRequest) returns (AdminResponse);
+  rpc ResizeWarmPool(AdminRequest) returns (AdminResponse);
+  rpc RetireWarmPool(AdminRequest) returns (AdminResponse);
+}

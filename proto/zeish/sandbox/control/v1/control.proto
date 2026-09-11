@@ -1,0 +1,531 @@
+syntax = "proto3";
+
+// Canonical public control-plane contract. Served by cloud apps/api over
+// Connect-RPC (see apps/api/src/modules/sandboxes/control). Callers speak
+// Sandbox terminology; apps/api translates to regiond internally.
+//
+// This is the canonical sandbox control surface. HTTP remains only at
+// protocol-native edges such as browser cookie handoffs and raw data-plane
+// transfer; domain operations use this Connect RPC service.
+package zeish.sandbox.control.v1;
+
+option go_package = "github.com/zeishdev/compute/proto/gen/zeish/sandbox/control/v1;controlv1";
+
+service SandboxControlService {
+  // Lifecycle / CRUD.
+  rpc CreateSandbox(CreateSandboxRequest) returns (CreateSandboxResponse);
+  rpc GetSandbox(GetSandboxRequest) returns (GetSandboxResponse);
+  rpc ListSandboxes(ListSandboxesRequest) returns (ListSandboxesResponse);
+  rpc UpdateSandbox(UpdateSandboxRequest) returns (UpdateSandboxResponse);
+  rpc DeleteSandbox(DeleteSandboxRequest) returns (DeleteSandboxResponse);
+  rpc CloneSandbox(CloneSandboxRequest) returns (CloneSandboxResponse);
+  rpc SyncSshKeys(SyncSshKeysRequest) returns (SyncSshKeysResponse);
+
+  rpc StartSandbox(StartSandboxRequest) returns (StartSandboxResponse);
+  rpc PauseSandbox(PauseSandboxRequest) returns (PauseSandboxResponse);
+  rpc ResumeSandbox(ResumeSandboxRequest) returns (ResumeSandboxResponse);
+  rpc StopSandbox(StopSandboxRequest) returns (StopSandboxResponse);
+  rpc KillSandbox(KillSandboxRequest) returns (KillSandboxResponse);
+
+  // Scoped, short-lived data-plane / desktop / terminal access grants. Each
+  // returns the exact envelope the former REST route returned.
+  rpc GetSandboxAccess(GetSandboxAccessRequest) returns (GetSandboxAccessResponse);
+  rpc GetTerminalUrl(GetTerminalUrlRequest) returns (GetTerminalUrlResponse);
+  rpc CreatePreviewCode(CreatePreviewCodeRequest) returns (CreatePreviewCodeResponse);
+  rpc CreateTunnelAccess(CreateTunnelAccessRequest) returns (CreateTunnelAccessResponse);
+  rpc CreateDesktopAccess(CreateDesktopAccessRequest) returns (CreateDesktopAccessResponse);
+  rpc OpenDesktopFork(OpenDesktopForkRequest) returns (OpenDesktopForkResponse);
+  rpc CloseDesktopFork(CloseDesktopForkRequest) returns (CloseDesktopForkResponse);
+
+  // Ports.
+  rpc AddPort(AddPortRequest) returns (AddPortResponse);
+  rpc SharePort(SharePortRequest) returns (SharePortResponse);
+
+  // Snapshots (live sandbox snapshots, distinct from regiond base templates).
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse);
+  rpc ListSnapshots(ListSnapshotsRequest) returns (ListSnapshotsResponse);
+  rpc DeleteSnapshot(DeleteSnapshotRequest) returns (DeleteSnapshotResponse);
+
+  // Observability.
+  rpc ListLogs(ListLogsRequest) returns (ListLogsResponse);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+}
+
+// Core aggregate
+
+// Product lifecycle state. Mirrors @repo/shared ProductState; the string form
+// is carried verbatim in `state_raw` for forward compatibility.
+enum SandboxState {
+  SANDBOX_STATE_UNSPECIFIED = 0;
+  SANDBOX_STATE_CREATING = 1;
+  SANDBOX_STATE_STARTING = 2;
+  SANDBOX_STATE_RUNNING = 3;
+  SANDBOX_STATE_PAUSING = 4;
+  SANDBOX_STATE_PAUSED = 5;
+  SANDBOX_STATE_RESUMING = 6;
+  SANDBOX_STATE_STOPPING = 7;
+  SANDBOX_STATE_STOPPED = 8;
+  SANDBOX_STATE_FAILED = 9;
+  SANDBOX_STATE_DESTROYING = 10;
+  SANDBOX_STATE_DESTROYED = 11;
+}
+
+enum SandboxDriver {
+  SANDBOX_DRIVER_UNSPECIFIED = 0;
+  SANDBOX_DRIVER_FIRECRACKER = 1;
+  SANDBOX_DRIVER_CLOUD_HYPERVISOR = 2;
+}
+
+enum IngressProtocol {
+  INGRESS_PROTOCOL_UNSPECIFIED = 0;
+  INGRESS_PROTOCOL_TCP = 1;
+  INGRESS_PROTOCOL_UDP = 2;
+}
+
+enum IngressAccessPolicy {
+  INGRESS_ACCESS_POLICY_UNSPECIFIED = 0;
+  INGRESS_ACCESS_POLICY_ORG = 1;
+  INGRESS_ACCESS_POLICY_PUBLIC = 2;
+}
+
+message IngressExposure {
+  // Always "raw_l4" today; carried for forward compatibility.
+  string mode = 1;
+  IngressProtocol protocol = 2;
+  int32 internal_port = 3;
+  int32 external_port = 4;
+  IngressAccessPolicy access_policy = 5;
+}
+
+message VolumeRef {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string region = 4;
+  int32 size_gb = 5;
+}
+
+message MachineServicePort {
+  int32 port = 1;
+  repeated string handlers = 2;
+}
+
+// Mirrors @repo/shared MachineService - an exposed guest service the dashboard
+// renders on the sandbox detail (terminal / ssh / preview / raw ports).
+message MachineServiceEntry {
+  string name = 1;
+  // Always "raw_l4" when set.
+  string mode = 2;
+  // "tcp" | "udp".
+  string protocol = 3;
+  int32 internal_port = 4;
+  repeated MachineServicePort ports = 5;
+  string url = 6;
+  string access_url = 7;
+  string access_token = 8;
+  map<string, string> access_headers = 9;
+  // "org" | "public".
+  string access_policy = 10;
+}
+
+// Current or most-recent runtime backing the sandbox. Access URLs are only
+// populated once `state` reaches "started".
+message SandboxRuntime {
+  string id = 1;
+  string sandbox_id = 2;
+  string org_id = 3;
+  string provider = 4;
+  string provider_machine_id = 5;
+  string workflow_id = 6;
+  string state = 7;
+  string desired_state = 8;
+  string region = 9;
+  string dns_name = 10;
+  repeated MachineServiceEntry services = 11;
+  string network_id = 12;
+  repeated string volume_ids = 13;
+  repeated VolumeRef volumes = 14;
+  string instance_id = 15;
+  string last_sync_at = 16;
+  string last_error = 17;
+  string created_at = 18;
+  string updated_at = 19;
+  string deleted_at = 20;
+}
+
+// Additive desktop-capability marker (present on detail responses only).
+message SandboxDesktopState {
+  bool available = 1;
+  // Always "d1".
+  string primary_display = 2;
+}
+
+// The Sandbox aggregate. List responses omit `runtimes` history and leave
+// short-lived access fields (`preview_url`, `primary_dns_name`) unset.
+message Sandbox {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  string slug = 4;
+  // Globally unique DNS label, stable across runtime replacement.
+  string endpoint_name = 5;
+  map<string, string> labels = 6;
+  SandboxState status = 7;
+  SandboxState desired_status = 8;
+  // Verbatim string form of status / desired_status (ProductState).
+  string status_raw = 9;
+  string desired_status_raw = 10;
+  string template_id = 11;
+  SandboxDriver driver = 12;
+  string region = 13;
+  // Effective allocations; unset for sandboxes created before overrides.
+  int32 cpu_cores = 14;
+  int32 memory_mb = 15;
+  repeated IngressExposure ingress = 16;
+  // Advertised only after the runtime reaches "started".
+  string preview_url = 17;
+  string primary_dns_name = 18;
+  string last_error = 19;
+  string created_by_user_id = 20;
+  string created_at = 21;
+  string updated_at = 22;
+  string deleted_at = 23;
+  SandboxRuntime runtime = 24;
+  // Full runtime history; omitted on list responses.
+  repeated SandboxRuntime runtimes = 25;
+  repeated VolumeRef volumes = 26;
+  SandboxDesktopState desktop = 27;
+}
+
+// Lifecycle / CRUD
+
+message SecretReference {
+  string secret_id = 1;
+  // "env" | "file".
+  string target = 2;
+  string target_name = 3;
+}
+
+message SecretInjection {
+  repeated SecretReference refs = 1;
+  // "startup" (default) | "command".
+  string mode = 2;
+}
+
+message CreateSandboxVolume {
+  string name = 1;
+  string slug = 2;
+  string region = 3;
+  int32 size_gb = 4;
+}
+
+message CreateSandboxRequest {
+  string name = 1;
+  string endpoint_name = 2;
+  SandboxDriver driver = 3;
+  string template_id = 4;
+  string region = 5;
+  int32 cpu = 6;
+  int32 memory = 7;
+  string network_id = 8;
+  repeated string volume_ids = 9;
+  repeated CreateSandboxVolume create_volumes = 10;
+  map<string, string> labels = 11;
+  repeated IngressExposure ingress = 12;
+  SecretInjection secret_injection = 13;
+}
+message CreateSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message GetSandboxRequest {
+  string id = 1;
+}
+message GetSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message ListSandboxesRequest {
+  int32 limit = 1;
+  string cursor = 2;
+}
+message ListSandboxesResponse {
+  repeated Sandbox sandboxes = 1;
+  string next_cursor = 2;
+}
+
+message UpdateSandboxRequest {
+  string id = 1;
+  string name = 2;
+  string template_id = 3;
+  string region = 4;
+  int32 cpu = 5;
+  int32 memory = 6;
+  // network_id is nullable; set clear_network_id to unset it.
+  string network_id = 7;
+  bool clear_network_id = 8;
+  repeated string volume_ids = 9;
+  bool set_volume_ids = 10;
+  map<string, string> labels = 11;
+  bool set_labels = 12;
+}
+message UpdateSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message DeleteSandboxRequest {
+  string id = 1;
+}
+message DeleteSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message CloneSandboxRequest {
+  string id = 1;
+  string name = 2;
+}
+message CloneSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message SyncSshKeysRequest {
+  string id = 1;
+}
+message SyncSshKeysResponse {
+  Sandbox sandbox = 1;
+}
+
+message StartSandboxRequest {
+  string id = 1;
+}
+message StartSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message PauseSandboxRequest {
+  string id = 1;
+}
+message PauseSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message ResumeSandboxRequest {
+  string id = 1;
+}
+message ResumeSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message StopSandboxRequest {
+  string id = 1;
+}
+message StopSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message KillSandboxRequest {
+  string id = 1;
+}
+message KillSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+// Access grants - faithful ports of the former REST envelopes
+
+message GetSandboxAccessRequest {
+  string id = 1;
+}
+// Mirrors SandboxDataPlaneAccess (exec-access).
+message GetSandboxAccessResponse {
+  string sandbox_rpc_url = 1;
+  string token = 2;
+  string expires_at = 3;
+}
+
+message GetTerminalUrlRequest {
+  string id = 1;
+}
+message GetTerminalUrlResponse {
+  // Null in REST when unavailable; empty string here.
+  string url = 1;
+}
+
+message CreatePreviewCodeRequest {
+  string id = 1;
+  int32 port = 2;
+  string path = 3;
+  int32 ttl_seconds = 4;
+}
+// Mirrors SandboxPreviewCode.
+message CreatePreviewCodeResponse {
+  string url = 1;
+  string handoff_url = 2;
+  string base_url = 3;
+  string code = 4;
+  string expires_at = 5;
+}
+
+message CreateTunnelAccessRequest {
+  string id = 1;
+  int32 ttl_seconds = 2;
+}
+// Mirrors SandboxTunnelAccess.
+message CreateTunnelAccessResponse {
+  string ws_url = 1;
+  string token = 2;
+  string expires_at = 3;
+}
+
+message CreateDesktopAccessRequest {
+  string id = 1;
+  // "d1" (default) or a fork display.
+  string display = 2;
+}
+// Mirrors SandboxDesktopAccess.
+message CreateDesktopAccessResponse {
+  string token = 1;
+  string expires_at = 2;
+  string desktop_rpc_url = 3;
+  string vnc_url = 4;
+  string cdp_url = 5;
+  string display = 6;
+}
+
+message OpenDesktopForkRequest {
+  string id = 1;
+  string owner_token = 2;
+  int32 viewport_width = 3;
+  int32 viewport_height = 4;
+}
+// Mirrors SandboxDesktopForkTicket.
+message OpenDesktopForkResponse {
+  string token = 1;
+  string expires_at = 2;
+  string desktop_rpc_url = 3;
+  string desktop_session_base_url = 4;
+  // Always "fork".
+  string scope = 5;
+  string owner_token = 6;
+  string hint = 7;
+}
+
+message CloseDesktopForkRequest {
+  string id = 1;
+  string display = 2;
+  string owner_token = 3;
+}
+// Mirrors SandboxDesktopForkClose.
+message CloseDesktopForkResponse {
+  string token = 1;
+  string expires_at = 2;
+  string desktop_rpc_url = 3;
+  string desktop_session_base_url = 4;
+  string scope = 5;
+  string owner_token = 6;
+  string hint = 7;
+  string display = 8;
+}
+
+// Ports
+
+message AddPortRequest {
+  string id = 1;
+  int32 internal_port = 2;
+  int32 external_port = 3;
+  IngressProtocol protocol = 4;
+  IngressAccessPolicy access_policy = 5;
+}
+message AddPortResponse {
+  Sandbox sandbox = 1;
+}
+
+message SharePortRequest {
+  string id = 1;
+  int32 port = 2;
+  // "org" or "public".
+  string policy = 3;
+}
+message SharePortResponse {
+  Sandbox sandbox = 1;
+}
+
+// Snapshots
+
+message Snapshot {
+  string id = 1;
+  string sandbox_id = 2;
+  string display_name = 3;
+  // "pending" | "ready" | "deleted".
+  string status = 4;
+  string created_at = 5;
+}
+
+message CreateSnapshotRequest {
+  string id = 1;
+  string display_name = 2;
+}
+message CreateSnapshotResponse {
+  Snapshot snapshot = 1;
+}
+
+message ListSnapshotsRequest {
+  string id = 1;
+}
+message ListSnapshotsResponse {
+  repeated Snapshot snapshots = 1;
+}
+
+message DeleteSnapshotRequest {
+  string id = 1;
+  string snapshot_id = 2;
+}
+message DeleteSnapshotResponse {}
+
+// Observability
+
+message ListLogsRequest {
+  string id = 1;
+  int32 limit = 2;
+  string service = 3;
+  // boot (default) | memory | app.
+  string source = 4;
+}
+// Mirrors RegiondMachineLogEntry.
+message LogEntry {
+  string timestamp = 1;
+  string service = 2;
+  string message = 3;
+}
+message ListLogsResponse {
+  repeated LogEntry entries = 1;
+}
+
+message ListEventsRequest {
+  string id = 1;
+  int32 limit = 2;
+}
+// Mirrors RegiondMachineEvent (control-plane synthetic + live node events
+// merged). `status` is an orchestrator state or a workload exit status.
+message SandboxEvent {
+  string id = 1;
+  string type = 2;
+  string status = 3;
+  string source = 4;
+  string timestamp = 5;
+  string message = 6;
+}
+message ListEventsResponse {
+  repeated SandboxEvent events = 1;
+}
+
+message GetMetricsRequest {
+  string id = 1;
+  string from = 2;
+  string to = 3;
+  string step = 4;
+}
+message GetMetricsResponse {
+  // Opaque JSON blob matching the former REST metrics payload.
+  string metrics_json = 1;
+}
