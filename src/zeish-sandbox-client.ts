@@ -1,6 +1,7 @@
 import { runSandboxdCommand } from './sandboxd-grpc';
 import type { RunSandboxdCommandInput } from './sandboxd-grpc.types';
 import { ZeishApiError, createZeishApi } from './public-api';
+import { createConnectSandboxApi } from './connect-sandbox-api';
 import { serializeSandboxAction } from './sandbox-actions';
 import type {
   ZeishSandboxClient,
@@ -46,7 +47,7 @@ const defaultPollIntervalMs = 2_000;
 export function createZeishSandboxClient(
   config: ZeishSandboxClientConfig,
 ): ZeishSandboxClient {
-  const api = createZeishApi(config);
+  const api = createConnectSandboxApi(config);
 
   return {
     async create(input: ZeishCreateSandboxInput): Promise<ZeishSandboxSession> {
@@ -120,7 +121,7 @@ class EdgeSandboxSession implements ZeishSandboxSession {
   }
 
   async refresh(): Promise<ZeishSandbox> {
-    this.sandbox = await createZeishApi(this.config).getSandbox(this.id);
+    this.sandbox = await createConnectSandboxApi(this.config).getSandbox(this.id);
     return this.sandbox;
   }
 
@@ -150,7 +151,7 @@ class EdgeSandboxSession implements ZeishSandboxSession {
 
   async getAccess(forceRefresh = false): Promise<ZeishAccess> {
     if (!forceRefresh && this.accessIsUsable()) return this.access!;
-    this.access = await createZeishApi(this.config).getExecAccess(this.id);
+    this.access = await createConnectSandboxApi(this.config).getExecAccess(this.id);
     return this.access;
   }
 
@@ -212,45 +213,45 @@ class EdgeSandboxSession implements ZeishSandboxSession {
   }
 
   getTerminalUrl(): Promise<ZeishTerminalUrlResponse> {
-    return createZeishApi(this.config).getTerminalUrl(this.id);
+    return createConnectSandboxApi(this.config).getTerminalUrl(this.id);
   }
 
   addPort(input: ZeishAddSandboxPortInput): Promise<ZeishSandbox> {
-    return createZeishApi(this.config).addPort(this.id, input);
+    return createConnectSandboxApi(this.config).addPort(this.id, input);
   }
 
   sharePort(port: number, policy: ZeishPortAccessPolicy): Promise<ZeishSandbox> {
-    return createZeishApi(this.config).sharePort(this.id, port, policy);
+    return createConnectSandboxApi(this.config).sharePort(this.id, port, policy);
   }
 
   createPreviewCode(input: ZeishCreatePreviewCodeInput = {}): Promise<ZeishPreviewCode> {
-    return createZeishApi(this.config).createPreviewCode(this.id, input);
+    return createConnectSandboxApi(this.config).createPreviewCode(this.id, input);
   }
 
   listLogs(options: ZeishListLogsOptions = {}): Promise<ZeishLogEntry[]> {
-    return createZeishApi(this.config).listLogs(this.id, options);
+    return createConnectSandboxApi(this.config).listLogs(this.id, options);
   }
 
   listEvents(options: ZeishListEventsOptions = {}): Promise<ZeishSandboxEvent[]> {
-    return createZeishApi(this.config).listEvents(this.id, options);
+    return createConnectSandboxApi(this.config).listEvents(this.id, options);
   }
 
   createSnapshot(displayName: string): Promise<ZeishSnapshot> {
-    return createZeishApi(this.config).createSnapshot(this.id, displayName);
+    return createConnectSandboxApi(this.config).createSnapshot(this.id, displayName);
   }
 
   listSnapshots(): Promise<ZeishSnapshot[]> {
-    return createZeishApi(this.config).listSnapshots(this.id);
+    return createConnectSandboxApi(this.config).listSnapshots(this.id);
   }
 
   async deleteSnapshot(snapshotId: string): Promise<void> {
-    await createZeishApi(this.config).deleteSnapshot(this.id, snapshotId);
+    await createConnectSandboxApi(this.config).deleteSnapshot(this.id, snapshotId);
   }
 
   private async lifecycle(
     action: 'destroySandbox' | 'startSandbox' | 'pauseSandbox' | 'resumeSandbox' | 'stopSandbox' | 'killSandbox',
   ): Promise<ZeishSandbox> {
-    this.sandbox = await createZeishApi(this.config)[action](this.id);
+    this.sandbox = await createConnectSandboxApi(this.config)[action](this.id);
     return this.sandbox;
   }
 

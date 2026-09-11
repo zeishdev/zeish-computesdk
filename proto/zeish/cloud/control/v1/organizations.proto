@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message OrganizationsRequest {
+  string organization_id = 1;
+  string resource_id = 2;
+  string token = 3;
+  string json = 4;
+}
+
+message OrganizationsResponse {
+  string json = 1;
+}
+
+service OrganizationsService {
+  rpc ListOrganizations(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc ListMembers(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc ListRoles(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc ListInvites(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc InviteMember(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc CancelInvite(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc RemoveMember(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc AcceptInvite(OrganizationsRequest) returns (OrganizationsResponse);
+}

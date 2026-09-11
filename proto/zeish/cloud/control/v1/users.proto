@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message GetCurrentUserRequest {}
+
+message UsersResponse {
+  string json = 1;
+}
+
+service UsersService {
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (UsersResponse);
+}

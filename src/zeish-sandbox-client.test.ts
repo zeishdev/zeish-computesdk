@@ -13,30 +13,33 @@ const sandbox = {
   createdAt: '2026-08-06T00:00:00.000Z',
   updatedAt: '2026-08-06T00:00:00.000Z',
 };
+const rpcSandbox = { ...sandbox, statusRaw: 'running' };
+
+const rpcResponse = (body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 
 describe('createZeishSandboxClient', () => {
   it('uses the control plane and scoped data-plane credentials for an agent run', async () => {
     const actions: Record<string, unknown>[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation((url, init) => {
       const requestUrl = String(url);
-      if (requestUrl.endsWith('/public/sandboxes')) {
+      if (requestUrl.includes('/CreateSandbox')) {
         expect(init).toMatchObject({ method: 'POST' });
-        return Promise.resolve(new Response(JSON.stringify(sandbox), { status: 201 }));
+        return Promise.resolve(rpcResponse({ sandbox: rpcSandbox }));
       }
-      if (requestUrl.endsWith('/public/sandboxes/sandbox-1/exec-access')) {
+      if (requestUrl.includes('/GetSandboxAccess')) {
         return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              sandboxUrl: 'https://sandbox.example',
+          rpcResponse({
               sandboxRpcUrl: 'https://sandbox-rpc.example',
               token: 'session-token',
               expiresAt: '2099-01-01T00:00:00.000Z',
-            }),
-            { status: 200 },
-          ),
+          }),
         );
       }
-      if (requestUrl === 'https://sandbox.example/files/write?path=work%2Finput.txt') {
+      if (requestUrl === 'https://sandbox-rpc.example/files/write?path=work%2Finput.txt') {
         expect(init).toMatchObject({
           method: 'PUT',
           body: 'hello',
@@ -44,13 +47,13 @@ describe('createZeishSandboxClient', () => {
         });
         return Promise.resolve(new Response(null, { status: 204 }));
       }
-      if (requestUrl === 'https://sandbox.example/files/download?path=work%2Finput.txt') {
+      if (requestUrl === 'https://sandbox-rpc.example/files/download?path=work%2Finput.txt') {
         return Promise.resolve(new Response('hello', { status: 200 }));
       }
-      if (requestUrl === 'https://sandbox.example/screenshot') {
+      if (requestUrl === 'https://sandbox-rpc.example/screenshot') {
         return Promise.resolve(new Response(new Uint8Array([137, 80, 78, 71]), { status: 200 }));
       }
-      if (requestUrl === 'https://sandbox.example/action') {
+      if (requestUrl === 'https://sandbox-rpc.example/action') {
         expect(init).toMatchObject({
           method: 'POST',
           headers: expect.objectContaining({ Authorization: 'Bearer session-token' }),
@@ -96,16 +99,16 @@ describe('createZeishSandboxClient', () => {
   it('rejects an unsuccessful desktop action response', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation((url) => {
       const requestUrl = String(url);
-      if (requestUrl.endsWith('/public/sandboxes/sandbox-1')) {
-        return Promise.resolve(new Response(JSON.stringify(sandbox), { status: 200 }));
-      }
-      if (requestUrl.endsWith('/public/sandboxes/sandbox-1/exec-access')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          sandboxUrl: 'https://sandbox.example', sandboxRpcUrl: 'https://sandbox-rpc.example',
+      if (requestUrl.includes('/GetSandboxAccess')) {
+        return Promise.resolve(rpcResponse({
+          sandboxRpcUrl: 'https://sandbox-rpc.example',
           token: 'session-token', expiresAt: '2099-01-01T00:00:00.000Z',
-        }), { status: 200 }));
+        }));
       }
-      if (requestUrl === 'https://sandbox.example/action') {
+      if (requestUrl.includes('/GetSandbox')) {
+        return Promise.resolve(rpcResponse({ sandbox: rpcSandbox }));
+      }
+      if (requestUrl === 'https://sandbox-rpc.example/action') {
         return Promise.resolve(new Response(JSON.stringify({ success: false }), { status: 200 }));
       }
       throw new Error(`Unexpected request ${requestUrl}`);
@@ -118,24 +121,23 @@ describe('createZeishSandboxClient', () => {
   it('keeps sandbox-scoped lifecycle and snapshot actions on the session', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation((url) => {
       const requestUrl = String(url);
-      if (requestUrl.endsWith('/public/sandboxes/sandbox-1')) {
-        return Promise.resolve(new Response(JSON.stringify(sandbox), { status: 200 }));
+      if (requestUrl.includes('/StartSandbox')) {
+        return Promise.resolve(rpcResponse({ sandbox }));
       }
-      if (requestUrl.endsWith('/public/sandboxes/sandbox-1/start')) {
-        return Promise.resolve(new Response(JSON.stringify(sandbox), { status: 200 }));
+      if (requestUrl.includes('/GetSandbox')) {
+        return Promise.resolve(rpcResponse({ sandbox: rpcSandbox }));
       }
-      if (requestUrl.endsWith('/public/sandboxes/sandbox-1/snapshots')) {
+      if (requestUrl.includes('/CreateSnapshot')) {
         return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              id: 'snapshot-1',
-              sandboxId: 'sandbox-1',
-              displayName: 'before-run',
-              status: 'ready',
-              createdAt: '2026-08-06T00:00:00.000Z',
-            }),
-            { status: 201 },
-          ),
+          rpcResponse({
+              snapshot: {
+                id: 'snapshot-1',
+                sandboxId: 'sandbox-1',
+                displayName: 'before-run',
+                status: 'ready',
+                createdAt: '2026-08-06T00:00:00.000Z',
+              },
+          }),
         );
       }
       throw new Error(`Unexpected request ${requestUrl}`);

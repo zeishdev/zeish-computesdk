@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+option go_package = "github.com/zeishdev/compute/proto/gen/zeish/cloud/control/v1;cloudv1";
+
+service TemplateService {
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse);
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse);
+  rpc CreateTemplate(CreateTemplateRequest) returns (CreateTemplateResponse);
+  rpc UpdateTemplate(UpdateTemplateRequest) returns (UpdateTemplateResponse);
+  rpc AdminUpdateTemplate(AdminUpdateTemplateRequest) returns (AdminUpdateTemplateResponse);
+  rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
+  rpc ListTemplateVersions(ListTemplateVersionsRequest) returns (ListTemplateVersionsResponse);
+  rpc RevertTemplate(RevertTemplateRequest) returns (RevertTemplateResponse);
+}
+
+enum TemplateScope {
+  TEMPLATE_SCOPE_UNSPECIFIED = 0;
+  TEMPLATE_SCOPE_GLOBAL = 1;
+  TEMPLATE_SCOPE_ORGANIZATION = 2;
+}
+
+enum MachineKind {
+  MACHINE_KIND_UNSPECIFIED = 0;
+  MACHINE_KIND_SHARED = 1;
+  MACHINE_KIND_DEDICATED = 2;
+}
+
+message IngressExposure {
+  string mode = 1;
+  string protocol = 2;
+  int32 internal_port = 3;
+  int32 external_port = 4;
+  string access_policy = 5;
+}
+
+message Template {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string registry_path = 4;
+  int32 cpu_cores = 5;
+  int32 memory_mb = 6;
+  int32 storage_gb = 7;
+  MachineKind machine_kind = 8;
+  repeated IngressExposure ingress = 9;
+  string icon_url = 10;
+  bool is_public = 11;
+  TemplateScope scope = 12;
+  string organization_id = 13;
+  string source_template_id = 14;
+  string created_at = 15;
+  string updated_at = 16;
+  string deleted_at = 17;
+}
+
+message TemplateVersion {
+  string id = 1;
+  string template_id = 2;
+  int32 version_number = 3;
+  string name = 4;
+  string description = 5;
+  string registry_path = 6;
+  int32 cpu_cores = 7;
+  int32 memory_mb = 8;
+  int32 storage_gb = 9;
+  repeated IngressExposure ingress = 10;
+  string icon_url = 11;
+  bool is_public = 12;
+  string change_type = 13;
+  string reverted_from_version_id = 14;
+  string created_by_id = 15;
+  string created_at = 16;
+}
+
+message TemplateInput {
+  string name = 1;
+  string description = 2;
+  string registry_path = 3;
+  int32 cpu_cores = 4;
+  int32 memory_mb = 5;
+  int32 storage_gb = 6;
+  repeated IngressExposure ingress = 7;
+  string icon_url = 8;
+  bool is_public = 9;
+  TemplateScope scope = 10;
+  string organization_id = 11;
+  string source_template_id = 12;
+}
+
+message ListTemplatesRequest { string scope = 1; }
+message ListTemplatesResponse { repeated Template templates = 1; }
+message GetTemplateRequest { string id = 1; }
+message GetTemplateResponse { Template template = 1; }
+message CreateTemplateRequest { TemplateInput input = 1; }
+message CreateTemplateResponse { Template template = 1; }
+message UpdateTemplateRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string registry_path = 4;
+  optional int32 cpu_cores = 5;
+  optional int32 memory_mb = 6;
+  optional int32 storage_gb = 7;
+  repeated IngressExposure ingress = 8;
+  optional string icon_url = 9;
+  optional bool is_public = 10;
+  optional TemplateScope scope = 11;
+  optional string organization_id = 12;
+  optional string source_template_id = 13;
+  bool set_ingress = 14;
+}
+message UpdateTemplateResponse { Template template = 1; }
+message AdminUpdateTemplateRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string registry_path = 4;
+  optional int32 cpu_cores = 5;
+  optional int32 memory_mb = 6;
+  optional int32 storage_gb = 7;
+  repeated IngressExposure ingress = 8;
+  optional string icon_url = 9;
+  optional bool is_public = 10;
+  bool set_ingress = 11;
+}
+message AdminUpdateTemplateResponse { Template template = 1; }
+message DeleteTemplateRequest { string id = 1; }
+message DeleteTemplateResponse { Template template = 1; }
+message ListTemplateVersionsRequest { string id = 1; }
+message ListTemplateVersionsResponse { repeated TemplateVersion versions = 1; }
+message RevertTemplateRequest { string id = 1; string version_id = 2; }
+message RevertTemplateResponse { Template template = 1; }

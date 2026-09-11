@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message AppRequest {
+  string version = 1;
+  string platform = 2;
+}
+
+message AppResponse {
+  string json = 1;
+}
+
+message DownloadCliResponse {
+  bytes data = 1;
+  string filename = 2;
+  string content_type = 3;
+}
+
+service AppService {
+  rpc GetWelcomeMessage(AppRequest) returns (AppResponse);
+  rpc GetVersionMetadata(AppRequest) returns (AppResponse);
+  rpc GetCliVersion(AppRequest) returns (AppResponse);
+  rpc DownloadCli(AppRequest) returns (DownloadCliResponse);
+}

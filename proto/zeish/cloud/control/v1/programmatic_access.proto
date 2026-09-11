@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message ProgrammaticAccessRequest {
+  string api_key_id = 1;
+  string mapping_id = 2;
+  string provider = 3;
+  string json = 4;
+}
+
+message ProgrammaticAccessResponse {
+  string json = 1;
+}
+
+service ProgrammaticAccessService {
+  rpc ListApiKeys(ProgrammaticAccessRequest) returns (ProgrammaticAccessResponse);
+  rpc CreateApiKey(ProgrammaticAccessRequest) returns (ProgrammaticAccessResponse);
+  rpc RevokeApiKey(ProgrammaticAccessRequest) returns (ProgrammaticAccessResponse);
+  rpc ListExternalIdentityMappings(ProgrammaticAccessRequest) returns (ProgrammaticAccessResponse);
+  rpc CreateExternalIdentityMapping(ProgrammaticAccessRequest) returns (ProgrammaticAccessResponse);
+  rpc DeleteExternalIdentityMapping(ProgrammaticAccessRequest) returns (ProgrammaticAccessResponse);
+}

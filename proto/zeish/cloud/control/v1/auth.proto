@@ -1,0 +1,8 @@
+syntax = "proto3";
+package zeish.cloud.control.v1;
+message AuthRequest { string organization_id = 1; }
+message AuthResponse { string json = 1; }
+service AuthService {
+  rpc CheckPermissions(AuthRequest) returns (AuthResponse);
+  rpc Logout(AuthRequest) returns (AuthResponse);
+}

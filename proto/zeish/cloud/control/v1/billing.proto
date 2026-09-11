@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package zeish.cloud.control.v1;
+
+message BillingRequest {
+  string organization_id = 1;
+  string invoice_id = 2;
+  string from = 3;
+  string to = 4;
+  string return_url = 5;
+  string plan_id = 6;
+  string success_url = 7;
+  string cancel_url = 8;
+  string code = 9;
+}
+
+message BillingResponse {
+  string json = 1;
+}
+
+service BillingService {
+  rpc GetUsage(BillingRequest) returns (BillingResponse);
+  rpc GetEstimate(BillingRequest) returns (BillingResponse);
+  rpc ListInvoices(BillingRequest) returns (BillingResponse);
+  rpc GetInvoice(BillingRequest) returns (BillingResponse);
+  rpc GetPricing(BillingRequest) returns (BillingResponse);
+  rpc GetStatus(BillingRequest) returns (BillingResponse);
+  rpc GetCredits(BillingRequest) returns (BillingResponse);
+  rpc GetHealth(BillingRequest) returns (BillingResponse);
+  rpc CreatePortalSession(BillingRequest) returns (BillingResponse);
+  rpc CreateCheckoutSession(BillingRequest) returns (BillingResponse);
+  rpc RedeemCoupon(BillingRequest) returns (BillingResponse);
+  rpc ClosePeriod(BillingRequest) returns (BillingResponse);
+}
